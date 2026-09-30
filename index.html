@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>我的 Docker 手冊</title>
+<style>
+:root {
+  --bg: #f7f7f5; --card: #ffffff; --text: #1f2328; --muted: #5f6670; --line: #e3e3de;
+  --accent: #2f6fdb; --accent-soft: #e8f0fd; --warn: #b3541e; --warn-soft: #fdf1e9;
+  --danger: #c0392b; --danger-soft: #fdecea;
+  --kbd-bg: #f1f1ee; --kbd-line: #c9c9c3; --hl: #fff3a3;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16181c; --card: #1e2127; --text: #e6e8eb; --muted: #9aa1ab; --line: #30343b;
+    --accent: #7aa7ff; --accent-soft: #1f2b40; --warn: #f0a070; --warn-soft: #3a2a20;
+    --danger: #ff8a80; --danger-soft: #3d2222;
+    --kbd-bg: #2a2e35; --kbd-line: #454b55; --hl: #5a4f10;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #16181c; --card: #1e2127; --text: #e6e8eb; --muted: #9aa1ab; --line: #30343b;
+  --accent: #7aa7ff; --accent-soft: #1f2b40; --warn: #f0a070; --warn-soft: #3a2a20;
+  --danger: #ff8a80; --danger-soft: #3d2222;
+  --kbd-bg: #2a2e35; --kbd-line: #454b55; --hl: #5a4f10;
+}
+* { box-sizing: border-box; }
+[id] { scroll-margin-top: 140px; }
+body { margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.6 system-ui, -apple-system, "Noto Sans TC", "PingFang TC", sans-serif; }
+.wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px 64px; }
+header { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line);
+  padding: 12px 0; }
+header .wrap { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding-bottom: 0; }
+h1 { font-size: 20px; margin: 0; }
+#q { flex: 1; min-width: 200px; font: inherit; padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--card); color: var(--text); }
+nav { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; font-size: 13px; }
+nav a { color: var(--muted); text-decoration: none; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); }
+nav a:hover { color: var(--accent); border-color: var(--accent); }
+nav a.sc { border-style: dashed; }
+h2 { font-size: 18px; margin: 32px 0 12px; }
+p.lead { color: var(--muted); margin: 4px 0 12px; }
+code { font: 13px ui-monospace, "JetBrains Mono", Menlo, monospace; background: var(--kbd-bg);
+  padding: 1px 4px; border-radius: 4px; word-break: break-word; }
+pre { font: 13px/1.5 ui-monospace, "JetBrains Mono", Menlo, monospace; background: var(--kbd-bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 6px 0; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+
+/* 概念地圖 */
+.map { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: var(--card);
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+.map .pane { border: 1.5px solid var(--line); border-radius: 8px; padding: 10px; font-size: 13px; }
+.map .pane > b { display: block; font-size: 14px; margin-bottom: 6px; }
+.map .pane div { margin: 3px 0; }
+.map .top { grid-column: 1 / 5; background: var(--accent-soft); }
+.map .box { border-color: var(--accent); }
+@media (max-width: 820px) {
+  .map { grid-template-columns: 1fr 1fr; }
+  .map .top { grid-column: 1 / 3; }
+}
+@media (max-width: 520px) {
+  .map { grid-template-columns: 1fr; }
+  .map .top { grid-column: 1; }
+}
+
+/* 卡片 */
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr)); gap: 12px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; min-width: 0; }
+.card h3 { margin: 0 0 8px; font-size: 16px; }
+.card h4 { margin: 12px 0 4px; font-size: 14px; }
+.card table { width: 100%; border-collapse: collapse; }
+.card td { padding: 5px 0; border-top: 1px solid var(--line); vertical-align: top; }
+.card td:first-child { width: 48%; padding-right: 10px; }
+.card tr:first-child td { border-top: 0; }
+.card ol { margin: 6px 0; padding-left: 22px; }
+.card ol li { margin: 6px 0; }
+.card p { margin: 6px 0; }
+.scenario { border-left: 4px solid var(--accent); }
+.scenario .why { color: var(--muted); font-size: 13.5px; }
+.note { background: var(--warn-soft); color: var(--text); border-left: 3px solid var(--warn);
+  padding: 8px 10px; border-radius: 6px; font-size: 13.5px; margin-top: 10px; }
+.note b { color: var(--warn); }
+.danger { background: var(--danger-soft); border-left-color: var(--danger); }
+.danger b { color: var(--danger); }
+.hidden { display: none !important; }
+#count { color: var(--muted); font-size: 13px; margin-top: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>我的 Docker 手冊</h1>
+    <input id="q" type="search" placeholder="搜尋：例如「log」「override」「開機」「版本」「port」…（按 / 聚焦）" autocomplete="off">
+    <nav>
+      <a href="#map">概念地圖</a><a href="#run">啟動停止</a><a href="#status">看狀態</a><a href="#logs">看 log</a>
+      <a href="#exec">進容器</a><a href="#apply">讓設定生效</a><a href="#image">image 版本</a><a href="#volume">資料 volume</a>
+      <a href="#network">網路</a><a href="#override">override</a><a href="#restart">開機啟動</a><a href="#naming">容器名稱</a>
+      <a href="#clean">清空間</a><a href="#help">救命</a>
+      <a class="sc" href="#scenarios">使用情境 ↓</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+<h2 id="map">概念地圖：先搞懂這五個東西</h2>
+<p class="lead">這本手冊的指令都用 <code>docker compose</code>（中間是空格）。舊版寫成 <code>docker-compose</code>（中間是橫線），意思一樣，但舊版已經不再更新。</p>
+<div class="map">
+  <div class="pane top"><b><code>docker-compose.yml</code>＝整個專案的說明書</b>
+    寫著要開哪些容器、各用哪個 image、要掛哪些 volume。在它所在的資料夾下 <code>docker compose</code> 指令，就會照這份說明書做事。</div>
+  <div class="pane"><b>image（映像檔）</b>
+    <div>像是「安裝光碟」，只能讀、不能改。</div>
+    <div>例：<code>mariadb:12.2.2</code>、<code>nginx:1.31.3</code></div>
+    <div>冒號後面是版本（tag）。</div></div>
+  <div class="pane box"><b>容器（container）</b>
+    <div>用 image 裝出來、正在跑的程式。</div>
+    <div>可以隨時刪掉重建。</div>
+    <div><b>容器刪掉，裡面的改動就跟著消失。</b></div></div>
+  <div class="pane"><b>volume（資料卷）</b>
+    <div>像「外接硬碟」，插在容器上。</div>
+    <div>容器刪掉重建，資料還在。</div>
+    <div>資料庫的資料都放這裡。</div></div>
+  <div class="pane"><b>network（網路）</b>
+    <div>容器之間的內部電話線。</div>
+    <div>同一個網路裡，用 <b>service 名稱</b>互相連線，例如 <code>db:3306</code>。</div></div>
+</div>
+
+<h2>我想要⋯</h2>
+<p class="lead">下面的 <code>php</code>、<code>db</code> 等是 <code>docker-compose.yml</code> 裡 <code>services:</code> 底下的名稱（service 名稱），換成你自己的。</p>
+<div class="cards">
+
+<section class="card" id="run" data-kw="啟動 開 關 停止 up down stop start restart 背景 detach">
+  <h3>啟動、停止容器</h3>
+  <table>
+    <tr><td><code>docker compose up -d</code></td><td>在背景啟動全部容器（<code>-d</code> 是背景執行，終端機可以繼續用）</td></tr>
+    <tr><td><code>docker compose up -d db</code></td><td>只啟動 <code>db</code>（它依賴的容器會一起起來）</td></tr>
+    <tr><td><code>docker compose stop</code></td><td>停止容器，<b>容器留著</b>，下次 <code>start</code> 很快</td></tr>
+    <tr><td><code>docker compose start</code></td><td>把停止的容器再開起來</td></tr>
+    <tr><td><code>docker compose restart php</code></td><td>重開 <code>php</code>（<b>不會</b>套用新設定，見「讓設定生效」）</td></tr>
+    <tr><td><code>docker compose down</code></td><td>停止並<b>刪除</b>容器和網路；volume 會留著，資料不會掉</td></tr>
+  </table>
+  <div class="note danger"><b>小心 <code>docker compose down -v</code>：</b>加了 <code>-v</code> 會連 volume 一起刪，資料庫資料會全部消失，而且救不回來。</div>
+</section>
+
+<section class="card" id="status" data-kw="狀態 列出 清單 ps ls stats top cpu 記憶體 port 對外 哪個 port">
+  <h3>看狀態：哪些在跑、吃多少資源</h3>
+  <table>
+    <tr><td><code>docker compose ps</code></td><td>這個專案有哪些容器在跑、開了哪些 port</td></tr>
+    <tr><td><code>docker compose ps -a</code></td><td>連已停止的也列出來</td></tr>
+    <tr><td><code>docker ps</code></td><td>整台機器所有在跑的容器（不分專案）</td></tr>
+    <tr><td><code>docker compose ls</code></td><td>整台機器有哪些 compose 專案在跑</td></tr>
+    <tr><td><code>docker stats --no-stream</code></td><td>每個容器的 CPU、記憶體用量（拿掉 <code>--no-stream</code> 會持續更新）</td></tr>
+    <tr><td><code>docker compose top</code></td><td>每個容器裡跑著哪些程式</td></tr>
+    <tr><td><code>docker compose port db 3306</code></td><td>查 <code>db</code> 的 3306 被對應到本機哪個 port</td></tr>
+  </table>
+  <div class="note"><b>狀態欄怎麼看：</b><code>Up 5 minutes</code> 正常；<code>Restarting</code> 表示一直當掉又重開，要看 log；
+    <code>Exited (0)</code> 是正常結束，<code>Exited (1)</code> 之類非 0 的數字是出錯結束。
+    <code>(healthy)</code>／<code>(unhealthy)</code> 是健康檢查的結果。</div>
+</section>
+
+<section class="card" id="logs" data-kw="log 日誌 錯誤 訊息 除錯 follow tail since 當掉">
+  <h3>看 log：出錯時第一件事</h3>
+  <table>
+    <tr><td><code>docker compose logs php</code></td><td>看 <code>php</code> 的全部 log</td></tr>
+    <tr><td><code>docker compose logs -f php</code></td><td>持續跟著看新的 log（<code>Ctrl+c</code> 離開，容器不會停）</td></tr>
+    <tr><td><code>docker compose logs -n 50 php</code></td><td>只看最後 50 行</td></tr>
+    <tr><td><code>docker compose logs --since 10m</code></td><td>只看最近 10 分鐘，全部容器一起</td></tr>
+    <tr><td><code>docker compose logs -t db</code></td><td>每行前面加上時間</td></tr>
+    <tr><td><code>docker compose logs db | grep -i error</code></td><td>只挑出含 error 的行</td></tr>
+  </table>
+  <div class="note"><b>log 是空的？</b>有些程式把 log 寫進容器裡的檔案，不是印到畫面上。
+    這時要進容器看檔案，或看專案有沒有把 log 目錄掛到本機（例如 <code>./Logs</code>）。</div>
+</section>
+
+<section class="card" id="exec" data-kw="進去 進入 容器 shell bash sh exec run 執行 指令 root composer npm artisan 腳本">
+  <h3>進容器、在容器裡下指令</h3>
+  <table>
+    <tr><td><code>docker compose exec php sh</code></td><td>進到 <code>php</code> 容器裡（有 bash 的話可以把 <code>sh</code> 換成 <code>bash</code>），<code>exit</code> 離開</td></tr>
+    <tr><td><code>docker compose exec php composer install</code></td><td>不進去，直接在容器裡跑一個指令</td></tr>
+    <tr><td><code>docker compose exec -u root php sh</code></td><td>用 root 身分進去（要裝東西、改權限時）</td></tr>
+    <tr><td><code>docker compose exec -w /var/www php ls</code></td><td>指定在哪個資料夾執行</td></tr>
+    <tr><td><code>docker compose exec -T db mariadb-dump ... &gt; backup.sql</code></td><td>輸出要存成檔案、或在腳本／CI 裡跑時，加 <code>-T</code></td></tr>
+    <tr><td><code>docker compose run --rm php php -v</code></td><td>另外開一個<b>臨時</b>容器跑指令，跑完自動刪掉（容器沒在跑也能用）</td></tr>
+    <tr><td><code>docker compose cp php:/var/www/a.log ./</code></td><td>把容器裡的檔案複製到本機（反過來寫就是複製進去）</td></tr>
+  </table>
+  <div class="note"><b><code>exec</code> 和 <code>run</code> 的差別：</b><code>exec</code> 進到<b>正在跑</b>的那個容器；
+    <code>run</code> 是用同一個 image <b>另開一個新的</b>。改資料、看現場狀況用 <code>exec</code>。</div>
+  <div class="note"><b>為什麼要 <code>-T</code>：</b>沒加 <code>-T</code> 時，Docker 會模擬一個互動式終端機，
+    輸出裡可能混進控制字元，備份檔就壞了。CI 裡沒有終端機，不加也可能直接報錯。</div>
+</section>
+
+<section class="card" id="apply" data-kw="生效 改設定 重建 recreate build 重新 build dockerfile 沒變 套用 config 設定檔">
+  <h3>改了設定，讓它生效</h3>
+  <table>
+    <tr><td>改了 <code>docker-compose.yml</code> 或 override 檔</td><td><code>docker compose up -d</code>（只會重建設定有變的容器）</td></tr>
+    <tr><td>改了 <code>Dockerfile</code></td><td><code>docker compose up -d --build</code></td></tr>
+    <tr><td>改了 <code>Dockerfile</code>，但 build 好像沒更新</td><td><code>docker compose build --no-cache php</code>，再 <code>up -d</code></td></tr>
+    <tr><td>改了 <code>.env</code> 裡的變數</td><td><code>docker compose up -d</code></td></tr>
+    <tr><td>設定沒變，但想全部重建</td><td><code>docker compose up -d --force-recreate</code></td></tr>
+    <tr><td>先確認合併後的設定長怎樣</td><td><code>docker compose config</code></td></tr>
+  </table>
+  <div class="note"><b>最常見的誤會：</b><code>docker compose restart</code> <b>不會</b>套用新設定。
+    它只是把同一個容器停掉再開，設定還是舊的。因為設定只有在「建立容器」的時候才寫進去，所以要用 <code>up -d</code> 讓它重建。</div>
+  <div class="note"><b>程式碼要不要重建？</b>如果程式碼是用 <code>volumes</code> 掛進容器（例如 <code>./api:/var/www</code>），存檔就生效，不用重建。
+    如果是在 Dockerfile 裡用 <code>COPY</code> 複製進去，就要 <code>--build</code>。</div>
+</section>
+
+<section class="card" id="image" data-kw="image 映像檔 版本 tag latest 鎖版本 pull 下載 更新 升級 降級 build">
+  <h3>image 與版本</h3>
+  <table>
+    <tr><td><code>docker compose pull</code></td><td>下載 compose 檔裡寫的 image（不會重建容器，之後要 <code>up -d</code>）</td></tr>
+    <tr><td><code>docker image ls</code></td><td>本機有哪些 image</td></tr>
+    <tr><td><code>docker compose images</code></td><td>這個專案的容器各用哪個 image</td></tr>
+    <tr><td><code>docker compose config --images</code></td><td>compose 檔裡寫了哪些 image</td></tr>
+    <tr><td><code>docker compose exec db mariadb --version</code></td><td>查容器裡程式的<b>實際</b>版本</td></tr>
+    <tr><td><code>docker manifest inspect nginx:1.31.3</code></td><td>確認這個版本 tag 在 Docker Hub 上存在（有輸出就是存在）</td></tr>
+  </table>
+  <h4>tag 怎麼寫比較安全</h4>
+  <table>
+    <tr><td><code>mariadb</code>、<code>mariadb:latest</code></td><td>最危險：每個人裝到的版本看下載時間而定</td></tr>
+    <tr><td><code>redis:7</code></td><td>主版本固定，小版本還是會變</td></tr>
+    <tr><td><code>redis:7.4.8-alpine</code></td><td>最穩：大家裝到的一模一樣</td></tr>
+  </table>
+  <div class="note"><b>Dockerfile 的 <code>FROM</code> 也要鎖：</b><code>docker-compose.yml</code> 鎖好了，
+    但 Dockerfile 寫 <code>FROM nginx:latest</code> 的話，每個人 build 出來的版本還是不一樣。</div>
+  <div class="note"><b>資料庫只能升版、不要降版。</b>新版寫過的資料，舊版常常讀不了。鎖版本前先去每台機器查實際版本，見情境「鎖版本前先查各環境」。</div>
+</section>
+
+<section class="card" id="volume" data-kw="volume 資料 資料庫 保存 備份 還原 刪除 掛載 bind mount 路徑 在哪">
+  <h3>資料 volume</h3>
+  <table>
+    <tr><td><code>docker volume ls</code></td><td>列出所有 volume</td></tr>
+    <tr><td><code>docker volume inspect 名稱</code></td><td>看 volume 的詳細資料，<code>Mountpoint</code> 是它在本機的實際路徑</td></tr>
+    <tr><td><code>docker compose config --volumes</code></td><td>這個專案用了哪些 volume</td></tr>
+    <tr><td><code>docker volume rm 名稱</code></td><td>刪掉 volume（容器還在用時會拒絕刪除）</td></tr>
+  </table>
+  <h4>兩種掛法</h4>
+  <table>
+    <tr><td><code>- db-data:/var/lib/mysql</code></td><td><b>named volume</b>：Docker 自己管，放資料庫這類資料</td></tr>
+    <tr><td><code>- ./api:/var/www</code></td><td><b>bind mount</b>：直接掛本機資料夾，放程式碼，改了馬上看到</td></tr>
+  </table>
+  <div class="note"><b>volume 的真實名稱會加上專案名稱：</b>compose 裡寫 <code>db-data</code>，
+    實際名稱是 <code>專案名稱_db-data</code>。所以專案名稱一改，Docker 會開一個全新的空 volume，見情境「資料庫看起來被清空了」。</div>
+</section>
+
+<section class="card" id="network" data-kw="網路 network 連線 連不到 localhost service 名稱 dns host.docker.internal external 外部">
+  <h3>網路：容器之間怎麼連</h3>
+  <table>
+    <tr><td>容器連同專案的另一個容器</td><td>用 service 名稱，例如 <code>db:3306</code>、<code>http://nginx</code></td></tr>
+    <tr><td>本機瀏覽器連容器</td><td>用 <code>ports</code> 開出來的 port，例如 <code>localhost:8080</code></td></tr>
+    <tr><td>容器連本機（宿主機）上的服務</td><td>Linux 要在 service 加 <code>extra_hosts: ["host.docker.internal:host-gateway"]</code>，再連 <code>host.docker.internal</code></td></tr>
+    <tr><td><code>docker network ls</code></td><td>列出所有網路</td></tr>
+    <tr><td><code>docker network inspect 名稱</code></td><td>看有哪些容器接在這個網路上</td></tr>
+  </table>
+  <h4><code>ports</code> 的寫法</h4>
+  <table>
+    <tr><td><code>"8080:80"</code></td><td>本機 8080 → 容器 80</td></tr>
+    <tr><td><code>"127.0.0.1:8080:80"</code></td><td>同上，但只有本機自己連得到，別台電腦連不到</td></tr>
+    <tr><td><code>"3306"</code></td><td>容器的 3306 對應到本機隨機一個 port，用 <code>docker compose port</code> 查</td></tr>
+  </table>
+  <div class="note"><b>容器裡的 <code>localhost</code> 是容器自己。</b>
+    在 php 容器裡連 <code>localhost:3306</code>，找的是 php 容器自己，不是資料庫。要連 <code>db:3306</code>。</div>
+  <div class="note"><b>跨專案互連：</b>在 compose 檔的 <code>networks</code> 設 <code>external: true</code>，
+    幾個專案接到同一個事先建好的網路（<code>docker network create 名稱</code>），就能用 service 名稱互相找到。</div>
+</section>
+
+<section class="card" id="override" data-kw="override 覆蓋 疊加 合併 多個檔案 -f dev master 環境 本機 個人設定">
+  <h3>override：每台機器不一樣的設定</h3>
+  <p><code>docker-compose.yml</code> 旁邊放一個 <code>docker-compose.override.yml</code>，
+    下 <code>docker compose</code> 指令時會<b>自動</b>讀進來，疊加在主設定上。</p>
+  <table>
+    <tr><td>單一值：<code>restart</code>、<code>image</code>、<code>command</code></td><td>override 的值蓋掉原本的</td></tr>
+    <tr><td><code>environment</code></td><td>同名變數用 override 的，其他保留</td></tr>
+    <tr><td><code>volumes</code></td><td>容器內路徑一樣就取代，不一樣就加上去</td></tr>
+    <tr><td><code>ports</code></td><td><b>兩邊都保留</b>，不會取代</td></tr>
+  </table>
+  <h4>override 和 <code>docker-compose.dev.yml</code> 這類檔案的差別</h4>
+  <table>
+    <tr><td><code>docker-compose.override.yml</code></td><td>自動讀取；通常<b>不進</b>版控，放單一台機器的個人設定</td></tr>
+    <tr><td><code>docker-compose.dev.yml</code> 等</td><td>要自己用 <code>-f</code> 指定；通常<b>進</b>版控，放某個環境的正式設定</td></tr>
+  </table>
+  <pre><code>docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d</code></pre>
+  <div class="note"><b>什麼時候不會自動讀 override：</b>用了 <code>-f</code>、設了環境變數 <code>COMPOSE_FILE</code>、或檔名打錯。
+    檔名錯了不會報錯，只會被靜靜忽略，所以改完一定要跑 <code>docker compose config</code> 確認。</div>
+  <div class="note"><b>後面的檔案蓋前面的。</b>用 <code>-f</code> 時主設定放第一個，每次都要帶齊，漏帶一個就會用錯設定啟動。</div>
+</section>
+
+<section class="card" id="restart" data-kw="開機 自動啟動 重開機 restart always unless-stopped on-failure no 當掉 自動重啟">
+  <h3>開機自動啟動（restart policy）</h3>
+  <table>
+    <tr><td><code>restart: "no"</code>（預設）</td><td>不自動啟動，重開機後要自己 <code>up -d</code></td></tr>
+    <tr><td><code>restart: always</code></td><td>當掉就重開；Docker 啟動時（例如重開機）也會跟著啟動</td></tr>
+    <tr><td><code>restart: unless-stopped</code></td><td>跟 always 一樣，但你手動 <code>stop</code> 過的，重開機後<b>不會</b>自己起來</td></tr>
+    <tr><td><code>restart: on-failure</code></td><td>只有出錯結束（結束碼不是 0）才重開；正常結束就不管它</td></tr>
+  </table>
+  <table>
+    <tr><td><code>docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' 容器名稱</code></td><td>查某個容器現在的設定</td></tr>
+    <tr><td><code>docker update --restart=no 容器名稱</code></td><td>不改檔案，直接改正在跑的容器（下次 <code>up -d</code> 重建時會被 compose 檔蓋回去）</td></tr>
+  </table>
+  <div class="note"><b>伺服器要、本機不要？</b>主設定不寫 <code>restart</code>，只在伺服器的 override 檔寫。見情境「伺服器要開機自動啟動，本機不要」。</div>
+</section>
+
+<section class="card" id="naming" data-kw="名稱 名字 容器名稱 太長 改名 container_name project 專案名稱 -p name">
+  <h3>容器名稱怎麼來的</h3>
+  <table>
+    <tr><td>容器</td><td><code>專案名稱-service名稱-編號</code>，例如 <code>myapp-db-1</code></td></tr>
+    <tr><td>volume</td><td><code>專案名稱_volume名稱</code>，例如 <code>myapp_db-data</code></td></tr>
+    <tr><td>預設網路</td><td><code>專案名稱_default</code></td></tr>
+    <tr><td>專案名稱</td><td>預設是資料夾名稱；可以用最上層的 <code>name:</code>、<code>-p</code> 或 <code>COMPOSE_PROJECT_NAME</code> 改</td></tr>
+  </table>
+  <h4>想改容器名稱</h4>
+  <table>
+    <tr><td>在 service 加 <code>container_name: 新名字</code></td><td>只改容器名稱，<b>volume 不受影響</b>，比較安全</td></tr>
+    <tr><td>改專案名稱</td><td>容器、volume、網路全部改名；volume 變成新的空 volume</td></tr>
+  </table>
+  <div class="note"><b>改名前先搜一遍：</b>部署腳本、CI、cron 裡寫死的 <code>docker exec 舊名稱</code> 要一起改，不然會找不到容器。</div>
+</section>
+
+<section class="card" id="clean" data-kw="清理 空間 磁碟 滿了 硬碟 prune df 刪除 image 刪 build cache">
+  <h3>清空間：磁碟快滿了</h3>
+  <table>
+    <tr><td><code>docker system df</code></td><td>先看空間被誰吃掉（image、容器、volume、build cache）</td></tr>
+    <tr><td><code>docker image prune</code></td><td>刪掉沒有名字的舊 image（重新 build 後留下的）</td></tr>
+    <tr><td><code>docker image prune -a</code></td><td>刪掉所有沒有容器在用的 image（之後要用會重新下載）</td></tr>
+    <tr><td><code>docker builder prune</code></td><td>清 build 快取，通常最佔空間</td></tr>
+    <tr><td><code>docker container prune</code></td><td>刪掉所有已停止的容器</td></tr>
+    <tr><td><code>docker system prune</code></td><td>上面幾項一次清（不含有名字的 image 和 volume）</td></tr>
+  </table>
+  <div class="note danger"><b>小心 <code>docker volume prune -a</code>：</b>會刪掉所有「目前沒有容器在用」的 volume。
+    專案剛好 <code>down</code> 著的話，它的資料庫 volume 也會被刪。</div>
+</section>
+
+<section class="card" id="help" data-kw="忘記 說明 help 查 inspect config 救命 events 為什麼">
+  <h3>全忘光時的救命指令</h3>
+  <table>
+    <tr><td><code>docker compose --help</code></td><td>列出所有子指令</td></tr>
+    <tr><td><code>docker compose up --help</code></td><td>某個子指令有哪些參數</td></tr>
+    <tr><td><code>docker compose config</code></td><td>看合併後、變數代換後的完整設定</td></tr>
+    <tr><td><code>docker inspect 容器名稱</code></td><td>容器的所有細節（環境變數、掛載、網路、restart 設定）</td></tr>
+    <tr><td><code>docker events</code></td><td>即時看 Docker 正在做什麼（建立、啟動、當掉），<code>Ctrl+c</code> 離開</td></tr>
+    <tr><td><code>--dry-run</code></td><td>加在 compose 指令後面，只顯示會做什麼、不真的做</td></tr>
+  </table>
+</section>
+
+</div>
+
+<h2 id="scenarios">使用情境：一步一步照著做</h2>
+<p class="lead">遇到問題時，照順序做。每個情境都先講「為什麼會這樣」，再給步驟。</p>
+<div class="cards">
+
+<section class="card scenario" id="s-apply" data-kw="情境 改設定 沒生效 override restart up">
+  <h3>改了 override，但沒生效</h3>
+  <p class="why">為什麼：設定只在建立容器時寫進去。<code>restart</code> 只是停掉再開同一個容器，所以設定還是舊的。</p>
+  <ol>
+    <li>確認 Docker 有讀到新設定：<pre><code>docker compose config</code></pre>看裡面有沒有你改的值。沒有的話，檢查檔名和位置。</li>
+    <li>重建有變動的容器：<pre><code>docker compose up -d</code></pre></li>
+    <li>確認容器真的換了：<code>docker compose ps</code> 的 <code>Up</code> 時間會變成剛剛。</li>
+  </ol>
+</section>
+
+<section class="card scenario" id="s-autostart" data-kw="情境 開機 自動啟動 伺服器 本機 restart always override gitignore">
+  <h3>伺服器要開機自動啟動，本機不要</h3>
+  <p class="why">為什麼：把 <code>restart: always</code> 寫進共用的 <code>docker-compose.yml</code>，每個人的電腦重開機後，這些容器都會自己跑起來。</p>
+  <ol>
+    <li>共用的 <code>docker-compose.yml</code> 不寫 <code>restart</code>。</li>
+    <li>在 repo 的 <code>.gitignore</code> 加一行 <code>docker-compose.override.yml</code>，避免有人不小心 commit。</li>
+    <li>只在伺服器建立 <code>docker-compose.override.yml</code>：
+<pre><code>services:
+  php:
+    restart: always
+  db:
+    restart: always</code></pre></li>
+    <li>確認有讀到：<pre><code>docker compose config | grep restart</code></pre></li>
+    <li>套用：<code>docker compose up -d</code></li>
+  </ol>
+</section>
+
+<section class="card scenario" id="s-pull" data-kw="情境 部署 ci cd git pull 失敗 伺服器 手動改 衝突 local changes overwritten">
+  <h3>部署時 <code>git pull</code> 失敗</h3>
+  <p class="why">為什麼：有人在伺服器上直接改過 <code>docker-compose.yml</code>，repo 的新版本也改到同一個檔案，git 不知道要留哪個，就拒絕更新。
+    錯誤訊息通常有 <code>Your local changes ... would be overwritten</code>。</p>
+  <ol>
+    <li>在伺服器看手動改了什麼：<pre><code>git diff docker-compose.yml</code></pre></li>
+    <li>把這些「只有這台機器要」的設定搬到 <code>docker-compose.override.yml</code>（做法見上一個情境）。</li>
+    <li>把 <code>docker-compose.yml</code> 還原成 repo 的版本：<pre><code>git checkout -- docker-compose.yml</code></pre></li>
+    <li>用 <code>docker compose config</code> 確認合併結果跟原本一樣。</li>
+    <li>回 CI 重跑部署。</li>
+  </ol>
+  <div class="note"><b>原則：</b>伺服器上不要直接改進版控的檔案。機器專屬的設定放 override 或 <code>.env</code>。</div>
+</section>
+
+<section class="card scenario" id="s-pin" data-kw="情境 鎖版本 版本 latest 降版 升版 資料庫 mariadb mysql 各環境">
+  <h3>鎖版本前，先查各環境的實際版本</h3>
+  <p class="why">為什麼：原本寫 <code>latest</code> 時，每台機器下載的時間不同，版本也不同。
+    如果照你本機的舊版本鎖，版本比較新的機器部署時就會被<b>降版</b>，資料庫可能讀不了資料。</p>
+  <ol>
+    <li>在<b>每台</b>機器（本機、測試機、正式機）查實際版本：
+<pre><code>docker compose exec db mariadb --version
+docker compose exec redis redis-server --version
+docker compose exec mongo mongod --version</code></pre></li>
+    <li>每個服務都取<b>最新</b>的那個版本來鎖。升版可以，降版不行。</li>
+    <li>確認這個 tag 存在：<pre><code>docker manifest inspect mariadb:12.2.2</code></pre></li>
+    <li>改 compose 檔，例如 <code>image: mariadb:12.2.2</code>。Dockerfile 的 <code>FROM</code> 也一起改。</li>
+    <li>版本比較舊的機器要升版，接著做下一個情境。</li>
+  </ol>
+</section>
+
+<section class="card scenario" id="s-upgrade" data-kw="情境 資料庫 升級 升版 mariadb-upgrade mysql_upgrade 備份 dump can't connect socket 太早 ready for connections">
+  <h3>資料庫升版本</h3>
+  <p class="why">為什麼要多做幾步：升版後，資料庫的系統表要用 <code>mariadb-upgrade</code> 更新。而且容器剛啟動時資料庫還沒準備好，太早下指令會失敗。</p>
+  <ol>
+    <li>先備份（<code>-T</code> 不能省，不然備份檔會壞）：
+<pre><code>docker compose exec -T db sh -c 'mariadb-dump -uroot -p"$MYSQL_ROOT_PASSWORD" --all-databases --single-transaction --routines --events' &gt; backup.sql
+tail -1 backup.sql</code></pre>最後一行是 <code>-- Dump completed ...</code> 才代表備份完整。</li>
+    <li>改 compose 檔的版本後，啟動新版：<pre><code>docker compose up -d db</code></pre></li>
+    <li><b>等資料庫準備好</b>：<pre><code>docker compose logs db | grep "ready for connections"</code></pre>有出現才往下做。</li>
+    <li>更新系統表：
+<pre><code>docker compose exec db sh -c 'mariadb-upgrade -uroot -p"$MYSQL_ROOT_PASSWORD"'</code></pre></li>
+    <li>確認資料還在，例如：<code>SELECT COUNT(*) FROM 某個表</code>。</li>
+  </ol>
+  <div class="note"><b>看到 <code>Can't connect to local server through socket</code>：</b>通常只是太早下指令，資料庫還沒啟動完。等 log 出現 <code>ready for connections</code> 再跑一次。</div>
+  <div class="note"><b>不想手動跑 <code>mariadb-upgrade</code>：</b>官方 MariaDB image 支援環境變數 <code>MARIADB_AUTO_UPGRADE=1</code>，啟動時會自動做。</div>
+</section>
+
+<section class="card scenario" id="s-rename" data-kw="情境 容器名稱 太長 改名 container_name 專案名稱 部署腳本">
+  <h3>容器名稱太長，想改短</h3>
+  <p class="why">為什麼名稱會長：名稱是 <code>專案名稱-service名稱-編號</code>。資料夾叫 <code>myapp</code>、service 又叫 <code>myapp_db</code>，就會變成 <code>myapp-myapp_db-1</code>。</p>
+  <ol>
+    <li>在每個 service 加 <code>container_name</code>：
+<pre><code>services:
+  myapp_db:
+    container_name: myapp_db-1</code></pre></li>
+    <li>搜尋 repo 裡寫死舊名稱的地方（部署腳本、CI、文件），一起改：<pre><code>git grep -n "myapp-myapp_"</code></pre></li>
+    <li>重建：<code>docker compose up -d</code>，舊名稱的容器會被換掉。</li>
+    <li>確認資料還在。</li>
+  </ol>
+  <div class="note"><b>不要用改專案名稱的方式改名。</b>專案名稱一變，volume 名稱也跟著變，Docker 會開一個新的空 volume，資料庫看起來就像被清空。</div>
+  <div class="note"><b>程式裡的連線設定不用改：</b>容器之間是用 service 名稱連線（<code>myapp_db</code>），不是容器名稱。</div>
+</section>
+
+<section class="card scenario" id="s-empty" data-kw="情境 資料不見 資料庫 被清空 空的 volume 專案名稱 改資料夾名稱">
+  <h3>資料庫看起來被清空了</h3>
+  <p class="why">為什麼：最常見的原因是專案名稱變了，例如資料夾改名、移到別的路徑、加了 <code>-p</code> 或 <code>name:</code>。
+    volume 名稱前面有專案名稱，所以 Docker 以為是新專案，開了一個新的空 volume。<b>舊資料通常還在。</b></p>
+  <ol>
+    <li>列出 volume，找舊的那個：<pre><code>docker volume ls</code></pre>例如同時有 <code>old_db-data</code> 和 <code>new_db-data</code>。</li>
+    <li>看容器現在掛的是哪個：<pre><code>docker inspect -f '{{range .Mounts}}{{.Name}} {{end}}' 容器名稱</code></pre></li>
+    <li>最簡單的救法：把專案名稱改回原本的，再 <code>docker compose up -d</code>。</li>
+    <li>如果要保留新名稱，在 compose 檔裡指定用舊的 volume：
+<pre><code>volumes:
+  db-data:
+    name: old_db-data
+    external: true</code></pre></li>
+  </ol>
+  <div class="note danger"><b>在搞清楚之前，不要執行 <code>docker volume prune</code> 或 <code>down -v</code>。</b>舊資料就在那個沒被使用的 volume 裡。</div>
+</section>
+
+<section class="card scenario" id="s-code" data-kw="情境 程式碼 改了 沒變 沒更新 快取 cache build dockerfile opcache config cache">
+  <h3>改了程式碼，但畫面沒變</h3>
+  <p class="why">為什麼：要看程式碼是怎麼進到容器的，不同方式有不同的生效方法。</p>
+  <ol>
+    <li>看 compose 檔的 <code>volumes</code> 有沒有掛程式碼資料夾（例如 <code>./api:/var/www</code>）。</li>
+    <li><b>有掛</b>：檔案已經同步了。問題通常在程式自己的快取，例如框架的 config cache、PHP 的 opcache。清掉快取，或 <code>docker compose restart php</code>。</li>
+    <li><b>沒掛</b>（Dockerfile 用 <code>COPY</code>）：要重新 build：<pre><code>docker compose up -d --build</code></pre></li>
+    <li>還是沒變：進容器看檔案是不是新的：<pre><code>docker compose exec php cat 檔案路徑</code></pre></li>
+  </ol>
+  <div class="note"><b>前端也一樣：</b>如果網頁讀的是打包好的 <code>dist</code>，改原始碼後要重新 build 前端才會更新。用開發伺服器（例如 Vite）看頁面時，存檔就會即時更新。</div>
+</section>
+
+<section class="card scenario" id="s-crash" data-kw="情境 一直重啟 restarting 當掉 啟動失敗 exited 起不來">
+  <h3>容器一直重啟或起不來</h3>
+  <p class="why">為什麼：容器裡的主程式一結束，容器就停了。有 <code>restart: always</code> 時，它會不停重開，狀態顯示 <code>Restarting</code>。</p>
+  <ol>
+    <li>看狀態和結束碼：<pre><code>docker compose ps -a</code></pre></li>
+    <li>看最後的 log，錯誤原因通常在這裡：<pre><code>docker compose logs -n 50 服務名稱</code></pre></li>
+    <li>常見原因：
+      <ul>
+        <li>環境變數沒設，例如 <code>.env</code> 少了資料庫密碼。用 <code>docker compose config</code> 看變數有沒有代換成功。</li>
+        <li>設定檔語法錯，例如 nginx 的 conf。</li>
+        <li>依賴的服務還沒準備好。見下方說明。</li>
+      </ul></li>
+  </ol>
+  <div class="note"><b><code>depends_on</code> 只保證「先啟動」，不保證「準備好」。</b>
+    要等資料庫真的可以連線，依賴的服務要寫 <code>condition: service_healthy</code>，資料庫也要設 <code>healthcheck</code>。
+    或是啟動時用 <code>docker compose up -d --wait</code> 等全部就緒。</div>
+</section>
+
+<section class="card scenario" id="s-port" data-kw="情境 port 被佔用 already allocated address already in use 衝突 8080 3306">
+  <h3>啟動時說 port 被佔用</h3>
+  <p class="why">為什麼：本機已經有別的程式或別的容器用了同一個 port。錯誤訊息是 <code>port is already allocated</code> 或 <code>address already in use</code>。</p>
+  <ol>
+    <li>找出是誰佔用（把 8080 換成你的 port）：
+<pre><code>docker ps --filter publish=8080
+ss -ltnp | grep :8080</code></pre></li>
+    <li>是別的容器：停掉它，或其中一邊改 port。</li>
+    <li>是本機程式（例如本機裝的 MySQL）：停掉它，或把 compose 的 port 改掉，例如 <code>"8081:80"</code>。</li>
+  </ol>
+  <div class="note"><b>每個人想用不同 port：</b>compose 檔寫成 <code>"${WEB_PORT:-8080}:80"</code>，各自在 <code>.env</code> 設 <code>WEB_PORT</code>。沒設時預設用 8080。</div>
+</section>
+
+<section class="card scenario" id="s-conn" data-kw="情境 連不到 連線 失敗 refused 資料庫 localhost service 名稱 網路 timeout">
+  <h3>容器裡連不到另一個服務</h3>
+  <p class="why">為什麼：最常見的是在容器裡用了 <code>localhost</code>。容器裡的 <code>localhost</code> 是容器自己，不是你的電腦，也不是別的容器。</p>
+  <ol>
+    <li>連同專案的容器：主機名稱用 <b>service 名稱</b>，例如 <code>db</code>，port 用<b>容器內</b>的 port（3306），不是對外的 port。</li>
+    <li>確認兩個容器在同一個網路：<pre><code>docker network inspect 網路名稱</code></pre></li>
+    <li>從容器裡直接測試連線：<pre><code>docker compose exec php sh -c 'curl -sS -m 5 http://nginx/ -o /dev/null -w "%{http_code}\n"'</code></pre>回 200 或其他 HTTP 狀態碼就是連得到；逾時或 <code>Could not resolve host</code> 就是網路不通。</li>
+    <li>要連的是區網上別台機器：用它的 IP，並確認那台的防火牆有開。</li>
+  </ol>
+</section>
+
+<section class="card scenario" id="s-disk" data-kw="情境 磁碟 滿了 空間 no space left on device prune">
+  <h3>磁碟滿了（<code>no space left on device</code>）</h3>
+  <p class="why">為什麼：每次 build 都會留下舊 image 和快取，時間久了會吃掉幾十 GB。</p>
+  <ol>
+    <li>看是誰吃掉空間：<pre><code>docker system df</code></pre></li>
+    <li>先清最安全的兩項：
+<pre><code>docker builder prune
+docker image prune</code></pre></li>
+    <li>還不夠，再清沒在用的 image（之後要用會重新下載）：<pre><code>docker image prune -a</code></pre></li>
+    <li>volume 最後才動，而且要一個一個確認後用 <code>docker volume rm 名稱</code> 刪，不要整批 prune。</li>
+  </ol>
+</section>
+
+</div>
+
+<div id="count"></div>
+
+</div>
+
+<script>
+const cards = [...document.querySelectorAll(".card")];
+function render() {
+  const q = document.getElementById("q").value.trim().toLowerCase();
+  let shown = 0;
+  cards.forEach(card => {
+    const text = (card.textContent + " " + (card.dataset.kw || "")).toLowerCase();
+    const hit = q === "" || text.includes(q);
+    card.classList.toggle("hidden", !hit);
+    if (hit) shown++;
+  });
+  document.getElementById("count").textContent = q === "" ? "" : `符合 ${shown} / ${cards.length} 張卡片`;
+}
+document.getElementById("q").addEventListener("input", render);
+document.addEventListener("keydown", e => {
+  if (e.key === "/" && document.activeElement.id !== "q") { e.preventDefault(); document.getElementById("q").focus(); }
+  if (e.key === "Escape") { document.getElementById("q").value = ""; render(); document.getElementById("q").blur(); }
+});
+render();
+</script>
+</body>
+</html>
